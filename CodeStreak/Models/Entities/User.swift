@@ -10,11 +10,11 @@ final class User {
     var lives: Int
     var globalBestStreak: Int
     
-    @Relationship (deleteRule: .cascade) var habits: [Habit]?
-    @Relationship (deleteRule: .cascade) var achievements: [Achievement]?
+    @Relationship(deleteRule: .cascade) var habits: [Habit]?
+    @Relationship(deleteRule: .cascade) var achievements: [Achievement]?
     
-    init (level: Int = 1, totalXP: Int = 0, credits: Int = 100, lives: Int = 3,
-          globalBestStreak: Int = 0, habits: [Habit]? = nil, achievements: [Achievement]? = nil) {
+    init(level: Int = 1, totalXP: Int = 0, credits: Int = 100, lives: Int = 3,
+         globalBestStreak: Int = 0, habits: [Habit]? = nil, achievements: [Achievement]? = nil) {
         self.level = level
         self.totalXP = totalXP
         self.credits = credits

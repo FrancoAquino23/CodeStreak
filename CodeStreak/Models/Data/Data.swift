@@ -2,12 +2,22 @@
 import Foundation
 import SwiftData
 
-final class PersistenceManager: DataManaging {
+final class DataController {
+    private let modelContainer: ModelContainer
     private let modelContext: ModelContext
-    init(context: ModelContext) {
-        self.modelContext = context
-    }
     
+    init() {
+        let schema = Schema([User.self, Habit.self, DailyRecord.self])
+        let config = ModelConfiguration("CodeStreakDB", schema: schema)
+        do {
+            self.modelContainer = try ModelContainer(for: schema, configurations: [config])
+            self.modelContext = modelContainer.mainContext
+        } catch {
+            fatalError ("[ERROR] - Could not create container: \(error)")
+        }
+        self.initializeDefaultUser()
+    }
+
     func fetch <T: PersistentModel> (descriptor: FetchDescriptor <T> ) -> [T] {
         do {
             return try modelContext.fetch(descriptor)
@@ -25,29 +35,17 @@ final class PersistenceManager: DataManaging {
             print("[ERROR] - Saving context: \(error)")
         }
     }
-    
-    func update <T: PersistentModel> (model: T) {
-        do {
-            try modelContext.save()
-        } catch {
-            print("[ERROR] - Updating context: \(error)")
-        }
-    }
-    
-    func delete <T: PersistentModel> (model: T) {
-        modelContext.delete(model)
-        do {
-            try modelContext.save()
-        } catch {
-            print("[ERROR] - Deleting context: \(error)")
-        }
-    }
-    
-    func initializeDefaultUser() {
-        let descriptor = FetchDescriptor<User>()
+
+    private func initializeDefaultUser() {
+        let descriptor = FetchDescriptor <User> ()
         let existingUsers = self.fetch(descriptor: descriptor)
         guard existingUsers.isEmpty else { return }
         let newUser = User(level: 1, totalXP: 0, credits: 100, lives: 3, globalBestStreak: 0)
         self.save(model: newUser)
+        print("User initialized successfully")
+    }
+
+    func getContext() -> ModelContext {
+        return modelContext
     }
 }
