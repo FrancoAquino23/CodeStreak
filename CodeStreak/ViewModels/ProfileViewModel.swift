@@ -3,8 +3,6 @@ import Foundation
 import SwiftUI
 import SwiftData
 
-// MARK: - Presentation Structs
-
 struct Achievement {
     let name: String
     let description: String
@@ -19,29 +17,48 @@ final class ProfileViewModel {
     var habitsSummary: [(name: String, bestStreak: Int)] = []
     var achievements: [Achievement] = []
     var isLoading: Bool = false
-    
+
     init(dataManager: DataManaging) {
         self.dataManager = dataManager
-        loadProfileData()
+
+        Task { @MainActor in
+            await loadProfileData()
+        }
     }
-    
-    func loadProfileData() {
+
+    @MainActor
+    func loadProfileData() async {
+        guard !isLoading else { return }
         self.isLoading = true
-        let userDescriptor = FetchDescriptor <User> ()
+        let userDescriptor = FetchDescriptor<User>()
         self.user = dataManager.fetch(descriptor: userDescriptor).first
-        guard let currentUser = self.user else {
-            self.isLoading = false
-            return
+        if let currentUser = self.user {
+            let habitsDescriptor = FetchDescriptor<Habit>()
+            let allHabits = dataManager.fetch(descriptor: habitsDescriptor)
+            self.habitsSummary = allHabits.map { habit in
+                (name: habit.name, bestStreak: habit.bestStreak)
+            }
+            self.achievements = calculateAchievements(for: currentUser)
+        } else {
+            await createDefaultUser()
         }
-        let habitsDescriptor = FetchDescriptor<Habit>()
-        let allHabits = dataManager.fetch(descriptor: habitsDescriptor)
-        self.habitsSummary = allHabits.map { habit in
-            (name: habit.name, bestStreak: habit.bestStreak)
-        }
-        self.achievements = calculateAchievements(for: currentUser)
         self.isLoading = false
     }
 
+    @MainActor
+    private func createDefaultUser() async {
+        let defaultUser = User(
+            username: "CodeAdventurer",
+            totalXP: 0,
+            credits: 100,
+            lives: 3,
+            globalBestStreak: 0
+        )
+        dataManager.save(model: defaultUser)
+        self.user = defaultUser
+        self.achievements = calculateAchievements(for: defaultUser)
+    }
+    
     private func calculateAchievements(for user: User) -> [Achievement] {
         let globalBestStreak = user.globalBestStreak
         let allPossibleAchievements = [

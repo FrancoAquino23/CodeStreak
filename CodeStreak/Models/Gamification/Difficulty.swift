@@ -23,3 +23,20 @@ enum Difficulty: Int, Codable, CaseIterable {
         }
     }
 }
+
+extension Difficulty: CustomStringConvertible {
+    var description: String {
+        switch self {
+        case .easy:
+            return "easy"
+        case .medium:
+            return "medium"
+        case .hard:
+            return "hard"
+        case .expert:
+            return "expert"
+        case .master:
+            return "master"
+        }
+    }
+}

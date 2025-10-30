@@ -2,13 +2,10 @@
 import SwiftUI
 
 struct ProfileView: View {
-    @State private var viewModel: ProfileViewModel
+    @Environment(ProfileViewModel.self) var viewModel
     
-    init(viewModel: ProfileViewModel) {
-        _viewModel = State(initialValue: viewModel)
-    }
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack {
                 if viewModel.isLoading {
                     ProgressView("Loading Profile...")
@@ -45,13 +42,14 @@ struct ProfileView: View {
                         }
                     }
                     .listStyle(.insetGrouped)
+                    
                 } else {
-                    Text("[ERROR] - Loading user data")
+                    ContentUnavailableView("Error Loading User", systemImage: "person.crop.circle.badge.exclamationmark")
                 }
             }
             .navigationTitle("Your Profile")
-            .onAppear {
-                viewModel.loadProfileData()
+            .refreshable {
+                await viewModel.loadProfileData()
             }
         }
     }
@@ -65,6 +63,10 @@ struct UserHeaderView: View {
                 .resizable()
                 .frame(width: 80, height: 80)
                 .foregroundColor(.blue)
+            // Mostrar Username
+            Text(user.username)
+                .font(.title2)
+                .fontWeight(.bold)
             Text("Level \(user.level)")
                 .font(.largeTitle)
                 .fontWeight(.heavy)
@@ -106,7 +108,8 @@ struct AchievementRow: View {
             VStack(alignment: .leading) {
                 Text(achievement.name)
                     .fontWeight(.semibold)
-                    .strikethrough(achievement.isUnlocked)
+                    // Uso de .strikethrough() condicional
+                    .strikethrough(achievement.isUnlocked ? true : false)
                 Text(achievement.description)
                     .font(.caption)
                     .foregroundColor(.secondary)

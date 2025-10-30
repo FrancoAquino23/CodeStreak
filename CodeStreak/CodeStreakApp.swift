@@ -8,7 +8,7 @@ struct CodeStreakApp: App {
         return PersistenceManager(context: dataController.getContext())
     }
     var rewardService: RewardGranting {
-        return RewardService(dataManager: persistenceManager)
+        return CreditService(dataManager: persistenceManager)
     }
     var streakService: StreakCalculator{
         return StreakService(dataManager: persistenceManager, rewardService: rewardService)

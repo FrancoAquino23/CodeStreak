@@ -1,15 +1,24 @@
 
 import SwiftUI
+import SwiftData
 
 struct HomeView: View {
-    @State var viewModel: HomeViewModel
+    @Environment(HomeViewModel.self) var viewModel
     var body: some View {
         NavigationStack {
             Group {
                 if viewModel.isLoading {
                     ProgressView("Loading Stats...")
                 } else if let stats = viewModel.currentUserStats {
-                    contentView(stats: stats)
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            contentView(stats: stats)
+                        }
+                        .padding(.vertical)
+                    }
+                    .refreshable {
+                        await viewModel.loadInitialData()
+                    }
                 } else {
                     ContentUnavailableView("Welcome to CodeStreak!",
                                            systemImage: "bolt.badge.a",
@@ -19,68 +28,64 @@ struct HomeView: View {
             .navigationTitle("CodeStreak")
         }
     }
-    
+
+    @ViewBuilder
     private func contentView(stats: UserStats) -> some View {
-        List {
-            UserStatsHeaderView(stats: stats)
-            Section("Your Daily Coding Tasks") {
-                if viewModel.userHabits.isEmpty {
-                    Text("No tasks found. Try adding a new Habit")
-                }
-                ForEach(viewModel.userHabits) { habit in
-                    HabitRowView(
-                        habit: habit,
-                        onCommit: {
-                            viewModel.commitHabit(habitID: habit.id)
-                        }
-                    )
-                }
+        UserStatsHeaderView(stats: stats)
+            .padding(.horizontal)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Your Daily Coding Tasks")
+                .font(.title2)
+                .fontWeight(.bold)
+                .padding(.horizontal)
+            if viewModel.userHabits.isEmpty {
+                Text("No tasks found. Tap the '+' button to add your first Habit")
+                    .padding(.horizontal)
+                    .foregroundColor(.secondary)
             }
-            if let result = viewModel.lastCommitResult {
-                CommitResultBanner(result: result)
-            }
-            Section("Lives & Store") {
-                Button("Buy 1 Life (50 Credits)") {
-                    viewModel.purchaseLives(amount: 1)
-                }
+            ForEach(viewModel.userHabits) { habit in
+                HabitCardView(
+                    habit: habit,
+                    commitAction: { habitID in
+                        viewModel.commitHabit(habitID: habitID)
+                    }
+                )
+                .padding(.horizontal)
             }
         }
+        if let result = viewModel.lastCommitResult {
+            CommitResultBanner(result: result)
+                .padding(.horizontal)
+        }
+        Spacer()
     }
 }
 
 struct UserStatsHeaderView: View {
     let stats: UserStats
+    private var xpNeeded: Int { return stats.level * 1000 }
     var body: some View {
-        VStack(alignment: .leading) {
+        VStack(spacing: 15) {
+            XPBarView(
+                currentXP: stats.totalXP,
+                xpForNextLevel: xpNeeded,
+                currentLevel: stats.level
+            )
             HStack {
-                Text("Level \(stats.level)")
+                LifeStatusBarView(livesRemaining: stats.lives)
                 Spacer()
-                Text("Lives: \(stats.lives)")
-                Text("Credits: \(stats.credits)")
+                HStack {
+                    Image(systemName: "dollarsign.circle.fill")
+                        .foregroundColor(.yellow)
+                    Text("\(stats.credits)")
+                        .font(.title2)
+                        .fontWeight(.heavy)
+                }
+                .padding(8)
+                .background(RoundedRectangle(cornerRadius: 10).stroke(Color.yellow, lineWidth: 1))
             }
-            Text("Best Streak: \(stats.globalBestStreak)")
         }
-        .padding(.vertical, 5)
-    }
-}
-
-struct HabitRowView: View {
-    let habit: Habit
-    let onCommit: () -> Void
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading) {
-                Text(habit.name).font(.headline)
-                Text("Streak: \(habit.currentStreak) | Tech: \(habit.technology)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button("Commit") {
-                onCommit()
-            }
-            .buttonStyle(.borderedProminent)
-        }
+        .padding(.vertical, 10)
     }
 }
 
@@ -92,12 +97,17 @@ struct CommitResultBanner: View {
                 .font(.headline)
                 .foregroundStyle(result.success ? .green : .orange)
             if result.success {
-                Text("New Streak: \(result.newStreak) | Gained \(result.xpGained) XP & \(result.creditsGained)")
+                Text("New Streak: \(result.newStreak) | Gained \(result.xpGained) XP & \(result.creditsGained) Credits")
             }
             if result.isStreakBroken {
-                Text("STREAK BROKEN! (Lives saved: \(result.livesLost))")
+                Text("STREAK BROKEN! (Lives used: \(result.livesLost))")
                     .foregroundStyle(.red)
             }
         }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(result.success ? Color.green.opacity(0.1) : Color.orange.opacity(0.1))
+        .cornerRadius(10)
+        .shadow(radius: 1)
     }
 }
