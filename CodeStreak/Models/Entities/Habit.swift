@@ -3,7 +3,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class Habit {
+final class Habit: Sendable {
     var id: UUID
     var name: String
     var technology: String

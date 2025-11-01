@@ -3,7 +3,8 @@ import SwiftUI
 
 struct HabitCardView: View {
     let habit: Habit
-    let commitAction: (UUID) -> Void
+    let openChallengeAction: (Habit) -> Void
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -23,7 +24,7 @@ struct HabitCardView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
             Button(action: {
-                commitAction(habit.id)
+                openChallengeAction(habit)
             }) {
                 HStack {
                     Text("Commit Today")

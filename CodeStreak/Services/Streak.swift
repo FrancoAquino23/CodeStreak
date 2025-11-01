@@ -10,11 +10,12 @@ final class StreakService: StreakCalculator {
         self.dataManager = dataManager
         self.rewardService = rewardService
     }
-    
-    func commitDailyQuest(habitID: UUID) -> CommitResult {
-        guard let user = getSingleUser(),
-              let habit = getHabit(by: habitID) else {
-            return CommitResult(success: false, newStreak: 0, xpGained: 0, creditsGained: 0, livesLost: 0, isStreakBroken: true)
+
+    func commitDailyQuest(habitID: UUID) async -> CommitResult {
+        guard let user = await getSingleUser(),
+              let habit = await getHabit(by: habitID) else {
+            return CommitResult(success: false, message: "[ERROR] - User or Habit not found",
+                                newStreak: 0, xpGained: 0, creditsGained: 0, livesLost: 0, isStreakBroken: false)
         }
         let today = Date().startOfDay()
         if habit.dailyRecords?.contains(where: { $0.date.startOfDay() == today }) == true {
@@ -50,39 +51,64 @@ final class StreakService: StreakCalculator {
         if currentStreak > user.globalBestStreak {
             user.globalBestStreak = currentStreak
         }
-        dataManager.update(model: habit)
-        dataManager.update(model: user)
-        return CommitResult(success: true, newStreak: currentStreak, xpGained: xp, creditsGained: credits,
+        await dataManager.update(model: habit)
+        await dataManager.update(model: user)
+        let message = livesLost > 0 ? "¡Streak saved! 1 life lost" : "+\(xp) XP, +\(credits) Credits"
+        return CommitResult(success: true, message: message, newStreak: currentStreak, xpGained: xp, creditsGained: credits,
                             livesLost: livesLost, isStreakBroken: isStreakBroken)
     }
 
-    func getCurrentUserStats() -> UserStats? {
-        guard let user = getSingleUser() else { return nil }
-        return UserStats(level: user.level, totalXP: user.totalXP, credits: user.credits, lives: user.lives, globalBestStreak: user.globalBestStreak)
+    func checkDailyStreaks() async {
+        guard let user = await getSingleUser() else { return }
+        let habits = await getHabitsFor(user: user)
+        let today = Date().startOfDay()
+        for habit in habits {
+            guard let lastCommit = habit.lastCommitDate else { continue }
+            let daysPassed = today.daysSince(lastCommit.startOfDay())
+            if daysPassed > 1 {
+                if user.lives > 0 {
+                    user.lives -= 1
+                } else {
+                    habit.currentStreak = 0
+                }
+                await dataManager.update(model: habit)
+            }
+        }
+        await dataManager.update(model: user)
     }
-
-    func purchaseLives(amount: Int) -> Bool {
-        guard let user = getSingleUser() else { return false }
-        let purchaseSuccessful = rewardService.purchaseLives(user: user, amount: amount)
+    
+    func getCurrentUserStats() async -> UserStats? {
+        guard let user = await dataManager.fetchSingleUser() else { return nil }
+        let xpToNext = user.xpToNextLevel
+        let currentXPInLevel = user.totalXP - user.xpForCurrentLevel
+        return UserStats(level: user.level, totalXP: user.totalXP, credits: user.credits, lives: user.lives, globalBestStreak: user.globalBestStreak, currentXP: currentXPInLevel, xpToNextLevel: xpToNext)
+    }
+    
+    func purchaseLives(amount: Int) async -> Bool {
+        guard let user = await dataManager.fetchSingleUser() else { return false }
+        let purchaseSuccessful = await rewardService.purchaseLives(user: user, amount: amount)
         if purchaseSuccessful {
-            dataManager.update(model: user)
+            await dataManager.update(model: user)
         }
         return purchaseSuccessful
     }
-        
-    private func getSingleUser() -> User? {
-        let descriptor = FetchDescriptor<User>()
-        return dataManager.fetch(descriptor: descriptor).first
+    
+    private func getSingleUser() async -> User? {
+        return await dataManager.fetchSingleUser()
     }
     
-    private func getHabit(by id: UUID) -> Habit? {
-        let predicate = #Predicate <Habit> { $0.id == id }
-        let descriptor = FetchDescriptor <Habit> (predicate: predicate)
-        return dataManager.fetch(descriptor: descriptor).first
+    private func getHabit(by id: UUID) async -> Habit? {
+        return await dataManager.fetchHabit(by: id)
+    }
+
+    private func getHabitsFor(user: User) async -> [Habit] {
+        let userID = user.persistentModelID
+        return await dataManager.fetch(predicate: #Predicate<Habit> { $0.user?.persistentModelID == userID })
     }
     
     private func createNoChangeResult(habit: Habit) -> CommitResult {
-        return CommitResult(success: false, newStreak: habit.currentStreak, xpGained: 0, creditsGained: 0,
+        return CommitResult(success: false, message: "You already completed todays challenge",
+                            newStreak: habit.currentStreak, xpGained: 0, creditsGained: 0,
                             livesLost: 0, isStreakBroken: false)
     }
 }

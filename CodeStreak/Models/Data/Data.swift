@@ -40,7 +40,8 @@ final class DataController {
         let descriptor = FetchDescriptor <User> ()
         let existingUsers = self.fetch(descriptor: descriptor)
         guard existingUsers.isEmpty else { return }
-        let newUser = User(level: 1, totalXP: 0, credits: 100, lives: 3, globalBestStreak: 0)
+        let newUser = User(
+            username: "Code Adventurer", totalXP: 0, credits: 100, lives: 3, globalBestStreak: 0)
         self.save(model: newUser)
         print("User initialized successfully")
     }

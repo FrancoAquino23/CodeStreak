@@ -44,7 +44,7 @@ struct ProfileView: View {
                     .listStyle(.insetGrouped)
                     
                 } else {
-                    ContentUnavailableView("Error Loading User", systemImage: "person.crop.circle.badge.exclamationmark")
+                    ContentUnavailableView("[ERROR] - Loading User", systemImage: "person.crop.circle.badge.exclamationmark")
                 }
             }
             .navigationTitle("Your Profile")

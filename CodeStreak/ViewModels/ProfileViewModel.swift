@@ -31,10 +31,10 @@ final class ProfileViewModel {
         guard !isLoading else { return }
         self.isLoading = true
         let userDescriptor = FetchDescriptor<User>()
-        self.user = dataManager.fetch(descriptor: userDescriptor).first
+        self.user = await dataManager.fetch(descriptor: userDescriptor).first
         if let currentUser = self.user {
             let habitsDescriptor = FetchDescriptor<Habit>()
-            let allHabits = dataManager.fetch(descriptor: habitsDescriptor)
+            let allHabits = await dataManager.fetch(descriptor: habitsDescriptor)
             self.habitsSummary = allHabits.map { habit in
                 (name: habit.name, bestStreak: habit.bestStreak)
             }
@@ -54,7 +54,7 @@ final class ProfileViewModel {
             lives: 3,
             globalBestStreak: 0
         )
-        dataManager.save(model: defaultUser)
+        await dataManager.save(model: defaultUser)
         self.user = defaultUser
         self.achievements = calculateAchievements(for: defaultUser)
     }

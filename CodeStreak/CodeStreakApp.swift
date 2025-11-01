@@ -1,30 +1,44 @@
 
 import SwiftUI
+import SwiftData
 
 @main
 struct CodeStreakApp: App {
-    let dataController = DataController()
-    var persistenceManager: PersistenceManager {
-        return PersistenceManager(context: dataController.getContext())
+    @State private var modelContainer: ModelContainer = {
+        do {
+            return try ModelContainer(for: User.self, Habit.self, DailyRecord.self)
+        } catch {
+            fatalError("Failed to create ModelContainer: \(error)")
+        }
+    }()
+    
+    private var dataStore: SwiftDataStore {
+        return SwiftDataStore(container: modelContainer)
     }
-    var rewardService: RewardGranting {
-        return CreditService(dataManager: persistenceManager)
+    
+    private var rewardService: RewardService {
+        return RewardService()
     }
-    var streakService: StreakCalculator{
-        return StreakService(dataManager: persistenceManager, rewardService: rewardService)
+    
+    private var streakService: StreakService {
+        return StreakService(dataManager: dataStore, rewardService: rewardService)
     }
-    var homeViewModel: HomeViewModel {
-        return HomeViewModel(streakService: streakService, dataManager: persistenceManager)
+    
+    private var homeViewModel: HomeViewModel {
+        return HomeViewModel(streakService: streakService, dataManager: dataStore)
     }
-    var profileViewModel: ProfileViewModel {
-        return ProfileViewModel(dataManager: persistenceManager)
+    
+    private var profileViewModel: ProfileViewModel {
+        return ProfileViewModel(dataManager: dataStore)
     }
+
     var body: some Scene {
         WindowGroup {
             MainTabView()
                 .environment(homeViewModel)
                 .environment(profileViewModel)
         }
+        .modelContainer(modelContainer)
     }
 }
 
@@ -32,17 +46,11 @@ struct MainTabView: View {
     var body: some View {
         TabView {
             HomeView()
-                .tabItem {
-                    Label("Home", systemImage: "house.fill")
-                }
+                .tabItem { Label("Home", systemImage: "house") }
             StoreView()
-                .tabItem {
-                    Label("Store", systemImage: "cart.fill")
-                }
+                .tabItem { Label("Store", systemImage: "bag") }
             ProfileView()
-                .tabItem {
-                    Label("Profile", systemImage: "person.fill")
-                }
+                .tabItem { Label("Profile", systemImage: "person") }
         }
     }
 }

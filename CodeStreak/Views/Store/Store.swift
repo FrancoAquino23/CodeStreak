@@ -66,7 +66,9 @@ struct StoreView: View {
     }
     
     private func buyLives() {
-        viewModel.purchaseLives(amount: livesToBuy)
+        Task {
+            await viewModel.purchaseLives(amount: livesToBuy)
+        }
         livesToBuy = 1
     }
 }
