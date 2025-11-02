@@ -12,7 +12,7 @@ protocol StreakCalculator: AnyObject {
     func purchaseLives(amount: Int) async -> Bool
 }
 
-struct CommitResult {
+struct CommitResult: Equatable {
     let success: Bool
     let message: String
     let newStreak: Int

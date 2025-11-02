@@ -4,11 +4,12 @@ import SwiftData
 
 @main
 struct CodeStreakApp: App {
+    
     @State private var modelContainer: ModelContainer = {
         do {
             return try ModelContainer(for: User.self, Habit.self, DailyRecord.self)
         } catch {
-            fatalError("Failed to create ModelContainer: \(error)")
+            fatalError("[ERROR] - Failed to create ModelContainer: \(error)")
         }
     }()
     
@@ -24,6 +25,10 @@ struct CodeStreakApp: App {
         return StreakService(dataManager: dataStore, rewardService: rewardService)
     }
     
+    private var questService: QuestService {
+        return QuestService(dataManager: dataStore)
+    }
+    
     private var homeViewModel: HomeViewModel {
         return HomeViewModel(streakService: streakService, dataManager: dataStore)
     }
@@ -31,12 +36,17 @@ struct CodeStreakApp: App {
     private var profileViewModel: ProfileViewModel {
         return ProfileViewModel(dataManager: dataStore)
     }
+    
+    private var questsViewModel: QuestsViewModel {
+        return QuestsViewModel(questService: questService, dataManager: dataStore)
+    }
 
     var body: some Scene {
         WindowGroup {
             MainTabView()
                 .environment(homeViewModel)
                 .environment(profileViewModel)
+                .environment(questsViewModel)
         }
         .modelContainer(modelContainer)
     }
@@ -47,8 +57,13 @@ struct MainTabView: View {
         TabView {
             HomeView()
                 .tabItem { Label("Home", systemImage: "house") }
+            
+            QuestsView()
+                .tabItem { Label("Quests", systemImage: "target") }
+            
             StoreView()
                 .tabItem { Label("Store", systemImage: "bag") }
+                
             ProfileView()
                 .tabItem { Label("Profile", systemImage: "person") }
         }
