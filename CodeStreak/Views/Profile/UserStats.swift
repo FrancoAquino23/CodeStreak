@@ -3,13 +3,19 @@ import SwiftUI
 
 struct UserStatsHeaderView: View {
     @Environment(HomeViewModel.self) var viewModel
-
+    
+    private var user: User? {
+        return viewModel.currentUser
+    }
+    
     private var stats: UserStats? {
         return viewModel.currentUserStats
     }
+    
     var body: some View {
         VStack(spacing: 15) {
             HStack {
+                // Título y perfil
                 Text("Level \(stats?.level ?? 1)")
                     .font(.largeTitle)
                     .fontWeight(.bold)
@@ -28,10 +34,9 @@ struct UserStatsHeaderView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-
             HStack {
-                StatBadge(value: stats?.lives ?? 0, icon: "heart.fill", color: .red)
-                StatBadge(value: stats?.credits ?? 0, icon: "dollarsign.circle.fill", color: .yellow)
+                StatBadge(value: user?.lives ?? 0, icon: "heart.fill", color: .red)
+                StatBadge(value: user?.credits ?? 0, icon: "dollarsign.circle.fill", color: .yellow)
                 Spacer()
             }
         }

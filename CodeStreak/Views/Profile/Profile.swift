@@ -63,7 +63,6 @@ struct UserHeaderView: View {
                 .resizable()
                 .frame(width: 80, height: 80)
                 .foregroundColor(.blue)
-            // Mostrar Username
             Text(user.username)
                 .font(.title2)
                 .fontWeight(.bold)

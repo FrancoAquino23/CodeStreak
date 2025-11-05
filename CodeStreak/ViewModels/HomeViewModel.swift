@@ -8,6 +8,8 @@ import SwiftData
 final class HomeViewModel {
     private let streakService: StreakCalculator
     private let dataManager: DataManaging
+
+    var currentUser: User?    
     var currentUserStats: UserStats?
     var userHabits: [Habit] = []
     var isLoading: Bool = false
@@ -67,7 +69,7 @@ final class HomeViewModel {
             await loadInitialData()
             return result
         } else {
-             return CommitResult(success: false, message: "¡Incorrect answer! Keep trying", newStreak: habit.currentStreak, xpGained: 0, creditsGained: 0, livesLost: 0, isStreakBroken: false)
+            return CommitResult(success: false, message: "¡Incorrect answer! Keep trying", newStreak: habit.currentStreak, xpGained: 0, creditsGained: 0, livesLost: 0, isStreakBroken: false)
         }
     }
     
@@ -76,31 +78,37 @@ final class HomeViewModel {
         await streakService.checkDailyStreaks()
         guard !isLoading else { return }
         self.isLoading = true
+        self.currentUser = await dataManager.fetchSingleUser()
         self.currentUserStats = await streakService.getCurrentUserStats()
         let habitsDescriptor = FetchDescriptor<Habit>()
         self.userHabits = await dataManager.fetch(descriptor: habitsDescriptor)
         if currentUserStats == nil || userHabits.isEmpty {
             if currentUserStats == nil {
-                await createDefaultUser() // Asegura que el usuario exista
+                await createDefaultUser()
             }
             if userHabits.isEmpty {
                 await createDefaultHabit()
             }
+            self.currentUser = await dataManager.fetchSingleUser()
             self.currentUserStats = await streakService.getCurrentUserStats()
             self.userHabits = await dataManager.fetch(descriptor: habitsDescriptor)
         }
-
         self.isLoading = false
     }
     
     @MainActor
     private func createDefaultHabit() async {
         let defaultHabit = Habit(name: "Daily Swift", technology: "Swift", difficulty: 1, currentStreak: 0, bestStreak: 0, lastCommitDate: nil)
+        if let user = currentUser {
+            defaultHabit.user = user
+        }
         await dataManager.save(model: defaultHabit)
     }
+    
     @MainActor
     private func createDefaultUser() async {
         let defaultUser = User(username: "Code Adventurer", totalXP: 0, credits: 100, lives: 3)
         await dataManager.save(model: defaultUser)
+        self.currentUser = defaultUser
     }
 }

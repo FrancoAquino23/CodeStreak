@@ -21,13 +21,3 @@ struct CommitResult: Equatable {
     let livesLost: Int
     let isStreakBroken: Bool
 }
-
-struct UserStats {
-    let level: Int
-    let totalXP: Int
-    let credits: Int
-    let lives: Int
-    let globalBestStreak: Int
-    let currentXP: Int
-    let xpToNextLevel: Int
-}

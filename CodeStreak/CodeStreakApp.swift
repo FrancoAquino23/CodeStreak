@@ -7,18 +7,17 @@ struct CodeStreakApp: App {
     
     @State private var modelContainer: ModelContainer = {
         do {
-            return try ModelContainer(for: User.self, Habit.self, DailyRecord.self)
+            return try ModelContainer(for: User.self, Habit.self, DailyRecord.self, ActiveBooster.self)
         } catch {
             fatalError("[ERROR] - Failed to create ModelContainer: \(error)")
         }
     }()
-    
-    private var dataStore: SwiftDataStore {
-        return SwiftDataStore(container: modelContainer)
+    private var dataStore: StoreData {
+        return StoreData(container: modelContainer)
     }
     
     private var rewardService: RewardService {
-        return RewardService()
+        return RewardService(dataManager: dataStore)
     }
     
     private var streakService: StreakService {
@@ -41,9 +40,13 @@ struct CodeStreakApp: App {
         return QuestsViewModel(questService: questService, dataManager: dataStore)
     }
 
+    private var storeViewModel: StoreViewModel {
+        return StoreViewModel(rewardService: rewardService, dataManager: dataStore)
+    }
+
     var body: some Scene {
         WindowGroup {
-            MainTabView()
+            MainTabView(storeViewModel: storeViewModel)
                 .environment(homeViewModel)
                 .environment(profileViewModel)
                 .environment(questsViewModel)
@@ -53,6 +56,8 @@ struct CodeStreakApp: App {
 }
 
 struct MainTabView: View {
+    @State var storeViewModel: StoreViewModel
+    
     var body: some View {
         TabView {
             HomeView()
@@ -61,7 +66,7 @@ struct MainTabView: View {
             QuestsView()
                 .tabItem { Label("Quests", systemImage: "target") }
             
-            StoreView()
+            StoreView(storeViewModel: storeViewModel)
                 .tabItem { Label("Store", systemImage: "bag") }
                 
             ProfileView()

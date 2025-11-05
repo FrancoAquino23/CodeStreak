@@ -2,7 +2,7 @@
 import Foundation
 import SwiftData
 
-final class SwiftDataStore: DataManaging {
+final class StoreData: DataManaging {
     private let modelContainer: ModelContainer
     private var mainContext: ModelContext {
         return modelContainer.mainContext

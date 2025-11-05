@@ -17,15 +17,18 @@ final class StreakService: StreakCalculator {
             return CommitResult(success: false, message: "[ERROR] - User or Habit not found",
                                 newStreak: 0, xpGained: 0, creditsGained: 0, livesLost: 0, isStreakBroken: false)
         }
+        
         let today = Date().startOfDay()
         if habit.dailyRecords?.contains(where: { $0.date.startOfDay() == today }) == true {
             return createNoChangeResult(habit: habit)
         }
+        
         var livesLost = 0
         var isStreakBroken = false
         var currentStreak = habit.currentStreak
         let lastCommitStartOfDay = habit.lastCommitDate?.startOfDay() ?? today.addingTimeInterval(-1)
         let daysPassed = today.daysSince(lastCommitStartOfDay)
+        
         if daysPassed == 1 {
             currentStreak += 1
         } else if daysPassed > 1 {
@@ -37,7 +40,8 @@ final class StreakService: StreakCalculator {
                 isStreakBroken = true
             }
         }
-        let (xp, credits) = rewardService.calculateRewards(for: habit, currentStreak: currentStreak)
+        
+        let (xp, credits) = rewardService.calculateRewards(for: habit, user: user, currentStreak: currentStreak)
         let newRecord = DailyRecord(date: Date(), isCompleted: true, xpGained: xp, creditsGained: credits, habit: habit)
         if habit.dailyRecords == nil { habit.dailyRecords = [] }
         habit.dailyRecords?.append(newRecord)
@@ -53,7 +57,7 @@ final class StreakService: StreakCalculator {
         }
         await dataManager.update(model: habit)
         await dataManager.update(model: user)
-        let message = livesLost > 0 ? "¡Streak saved! 1 life lost" : "+\(xp) XP, +\(credits) Credits"
+        let message = livesLost > 0 ? "Streak saved! 1 life lost" : "+\(xp) XP, +\(credits) Credits"
         return CommitResult(success: true, message: message, newStreak: currentStreak, xpGained: xp, creditsGained: credits,
                             livesLost: livesLost, isStreakBroken: isStreakBroken)
     }

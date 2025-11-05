@@ -2,73 +2,91 @@
 import SwiftUI
 
 struct StoreView: View {
-    @Environment(HomeViewModel.self) var viewModel
-    @State private var livesToBuy: Int = 1
+    @State var storeViewModel: StoreViewModel
     
-    private let costPerLife = 50
-    var body: some View {
-        VStack {
-            Text("CodeStreak Store")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .padding(.bottom, 20)
-            HStack {
-                Text("Your Credits:")
-                    .font(.title2)
-                Text("\(viewModel.currentUserStats?.credits ?? 0)")
-                    .font(.title2)
-                    .fontWeight(.heavy)
-                    .foregroundColor(.yellow)
-                Image(systemName: "dollarsign.circle.fill")
-                    .foregroundColor(.yellow)
-            }
-            .padding(.bottom, 40)
-            VStack(spacing: 20) {
-                Text("Buy Life Insurance")
-                    .font(.headline)
-                Text("Restore your streak protection by purchasing extra lives")
-                    .font(.subheadline)
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.secondary)
-                Stepper("Buy \(livesToBuy) Life\(livesToBuy > 1 ? "s" : "")", value: $livesToBuy, in: 1...5)
-                    .padding(.horizontal)
-                Text("Total Cost: \(livesToBuy * costPerLife) Credits")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.orange)
-                Button(action: {
-                    buyLives()
-                }) {
-                    Text("Purchase (\(livesToBuy * costPerLife) C)")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(canAfford ? Color.blue : Color.gray)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                }
-                .disabled(!canAfford)
-                
-            }
-            .padding()
-            .background(Color(.secondarySystemBackground))
-            .cornerRadius(20)
-            .shadow(radius: 5)
-            Spacer()
-        }
-        .padding()
-        .navigationTitle("Store")
+    init(storeViewModel: StoreViewModel) {
+        self._storeViewModel = State(initialValue: storeViewModel)
     }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 25) {
+                HStack {
+                    Text("Your credits:")
+                        .font(.title2)
+                    Text("\(storeViewModel.currentUser?.credits ?? 100)")
+                        .font(.title2)
+                        .fontWeight(.heavy)
+                        .foregroundColor(.yellow)
+                    Image(systemName: "dollarsign.circle.fill")
+                        .foregroundColor(.yellow)
+                }
+                .padding(.vertical)
+                VStack(alignment: .leading, spacing: 15) {
+                    Text("Available items")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .padding(.horizontal)
+                    ForEach(storeViewModel.availableItems) { item in
+                        StoreItemRow(item: item, viewModel: storeViewModel)
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+        .padding(.top)
+        .navigationTitle("CodeStreak Store")
+    }
+}
+
+struct StoreItemRow: View {
+    let item: StoreItem
+    
+    @ObservedObject var viewModel: StoreViewModel
     
     private var canAfford: Bool {
-        let currentCredits = viewModel.currentUserStats?.credits ?? 0
-        return currentCredits >= (livesToBuy * costPerLife)
+        let currentCredits = viewModel.currentUser?.credits ?? 100
+        return currentCredits >= item.cost
     }
-    
-    private func buyLives() {
-        Task {
-            await viewModel.purchaseLives(amount: livesToBuy)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: item.iconName)
+                    .foregroundColor(.orange)
+                    .font(.title)
+                    .frame(width: 40)
+                VStack(alignment: .leading) {
+                    Text(item.name)
+                        .font(.headline)
+                    Text(item.description)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+                Spacer()
+                Button(action: {
+                    Task {
+                        _ = await viewModel.purchaseItem(item: item)
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "dollarsign.circle.fill")
+                        Text("\(item.cost)")
+                    }
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(canAfford ? Color.green : Color.gray)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+                }
+                .disabled(!canAfford)
+            }
         }
-        livesToBuy = 1
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 2)
     }
 }

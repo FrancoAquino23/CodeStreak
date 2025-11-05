@@ -25,7 +25,7 @@ final class QuestService {
             
             DailyQuest(question: "¿Which key concept allows an object take many posible forms in POO?",
                        answer: "Polymorphism",
-                       hint: "Empieza con P.",
+                       hint: "",
                        rewardXP: 20,
                        rewardCredits: 15)
         ]
